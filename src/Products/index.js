@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
 import {
   Title,
@@ -13,34 +12,35 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-
-const fetchProducts = async (category = "") => {
-  const response = await axios.get(
-    "http://localhost:1226/products" +
-      (category !== "" ? "?category=" + category : "")
-  );
-  return response.data;
-};
-
-const deleteProducts = async (product_id = "") => {
-  const response = await axios({
-    method: "DELETE",
-    url: "http://localhost:1226/products/" + product_id,
-  });
-  return response.data;
-};
+import { fetchProducts, deleteProduct } from "../api/products";
 
 function Products() {
-  const [category, setCategory] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
   const queryClient = useQueryClient();
-
+  const [category, setCategory] = useState("");
+  const [currentProducts, setCurrentProducts] = useState([]);
   const { isLoading, data: products } = useQuery({
     queryKey: ["products", category],
     queryFn: () => fetchProducts(category),
   });
 
-  const memoryProducts = queryClient.getQueryData(["product", ""]);
+  useEffect(() => {
+    // this will trigger when products is updated OR category is changed
+    // method 1:
+    // if (category !== "") {
+    //   const filteredProducts = products.filter((p) => p.category === category);
+    //   setCurrentProducts(filteredProducts);
+    // } else {
+    //   setCurrentProducts(products);
+    // }
+    // method 2:
+    let newList = products ? [...products] : [];
+    // filter by category
+    if (category !== "") {
+      newList = newList.filter((p) => p.category === category);
+    }
+    setCurrentProducts(newList);
+  }, [products, category]);
+
   const categoryOptions = useMemo(() => {
     let options = [];
     if (products && products.length > 0) {
@@ -51,10 +51,10 @@ function Products() {
       });
     }
     return options;
-  }, [memoryProducts]);
+  }, [products]);
 
   const deleteMutation = useMutation({
-    mutationFn: deleteProducts,
+    mutationFn: deleteProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["products", category],
@@ -65,17 +65,6 @@ function Products() {
       });
     },
   });
-
-  useEffect(() => {
-    if (selectedCategory === "") {
-      setCategory(category);
-    } else {
-      const filteredPro = category.filter((pro) =>
-        pro.categoryOptions.includes(selectedCategory)
-      );
-      setCategory(filteredPro);
-    }
-  }, [selectedCategory]);
 
   return (
     <>
@@ -110,10 +99,9 @@ function Products() {
       </Group>
       <Space h="20px" />
       <LoadingOverlay visible={isLoading} />
-
       <Grid>
-        {products
-          ? products.map((pro) => {
+        {currentProducts
+          ? currentProducts.map((pro) => {
               return (
                 <Grid.Col sm={12} md={6} lg={4} key={pro._id}>
                   <Card withBorder shadow="sm" p="20px">

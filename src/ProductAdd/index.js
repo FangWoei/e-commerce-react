@@ -11,19 +11,9 @@ import {
 } from "@mantine/core";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import axios from "axios";
 import { notifications } from "@mantine/notifications";
 import { useMutation } from "@tanstack/react-query";
-
-const addPro = async (data) => {
-  const response = await axios({
-    method: "POST",
-    url: "http://localhost:1226/products",
-    headers: { "Content-Type": "application/json" },
-    data: data,
-  });
-  return response.data;
-};
+import { addProduct } from "../api/products";
 
 function ProductAdd() {
   const navigate = useNavigate();
@@ -33,7 +23,7 @@ function ProductAdd() {
   const [category, setCategory] = useState("");
 
   const createMutation = useMutation({
-    mutationFn: addPro,
+    mutationFn: addProduct,
     onSuccess: () => {
       notifications.show({
         title: "Product Added",

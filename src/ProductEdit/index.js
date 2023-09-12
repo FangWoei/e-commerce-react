@@ -11,35 +11,20 @@ import {
 } from "@mantine/core";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import axios from "axios";
 import { notifications } from "@mantine/notifications";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { getProduct, updateProduct } from "../api/products";
 
-const getMovie = async (id) => {
-  const response = await axios.get("http://localhost:1226/products/" + id);
-  return response.data;
-};
-
-const updatePro = async ({ id, data }) => {
-  const response = await axios({
-    method: "PUT",
-    url: "http://localhost:1226/products/" + id,
-    headers: { "Content-Type": "application/json" },
-    data: data,
-  });
-  return response.data;
-};
-
-function MovieEdit() {
+function ProductsEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
-  const { data } = useQuery({
-    queryKey: ["movie", id],
-    queryFn: () => getMovie(id),
+  const { isLoading } = useQuery({
+    queryKey: ["product", id],
+    queryFn: () => getProduct(id),
     onSuccess: (data) => {
       setName(data.name);
       setDescription(data.description);
@@ -47,9 +32,8 @@ function MovieEdit() {
       setCategory(data.category);
     },
   });
-
   const updateMutation = useMutation({
-    mutationFn: updatePro,
+    mutationFn: updateProduct,
     onSuccess: () => {
       notifications.show({
         title: "Products Edited",
@@ -146,4 +130,4 @@ function MovieEdit() {
     </Container>
   );
 }
-export default MovieEdit;
+export default ProductsEdit;
