@@ -154,7 +154,6 @@ export default function Cart() {
           </thead>
           <tbody>
             {rows}
-
             <tr>
               <td></td>
               <td></td>
@@ -170,6 +169,9 @@ export default function Cart() {
         <Space h="20px" />
         <Group position="apart">
           <Button
+            disabled={checkedList.length === 0}
+            variant="outline"
+            color="red"
             onClick={(event) => {
               event.preventDefault();
               deleteCheckedItems();
