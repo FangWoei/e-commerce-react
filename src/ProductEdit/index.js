@@ -8,12 +8,14 @@ import {
   Divider,
   Button,
   Group,
+  Image,
 } from "@mantine/core";
+import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getProduct, updateProduct } from "../api/products";
+import { getProduct, updateProduct, uploadProductImage } from "../api/products";
 
 function ProductsEdit() {
   const { id } = useParams();
@@ -22,6 +24,8 @@ function ProductsEdit() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
+  const [image, setImage] = useState("");
+  const [uploading, setUploading] = useState(false);
   const { isLoading } = useQuery({
     queryKey: ["product", id],
     queryFn: () => getProduct(id),
@@ -30,6 +34,7 @@ function ProductsEdit() {
       setDescription(data.description);
       setPrice(data.price);
       setCategory(data.category);
+      setImage(data.image);
     },
   });
   const updateMutation = useMutation({
@@ -58,9 +63,30 @@ function ProductsEdit() {
         description: description,
         price: price,
         category: category,
+        image: image,
       }),
     });
   };
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadProductImage,
+    onSuccess: (data) => {
+      setImage(data.image_url);
+      setUploading(false);
+    },
+    onError: (error) => {
+      notifications.show({
+        title: error.response.data.message,
+        color: "red",
+      });
+    },
+  });
+
+  const handleImageUpload = (files) => {
+    uploadMutation.mutate(files[0]);
+    setUploading(true);
+  };
+
   return (
     <Container>
       <Space h="50px" />
@@ -100,6 +126,29 @@ function ProductsEdit() {
           withAsterisk
           onChange={setPrice}
         />
+        <Space h="20px" />
+        <Divider />
+        <Space h="20px" />
+        {image && image !== "" ? (
+          <>
+            <Image src={"http://localhost:1226/" + image} width="100%" />
+            <Button color="dark" mt="15px" onClick={() => setImage("")}>
+              Remove Image
+            </Button>
+          </>
+        ) : (
+          <Dropzone
+            loading={uploading}
+            multiple={false}
+            accept={IMAGE_MIME_TYPE}
+            onDrop={(files) => {
+              handleImageUpload(files);
+            }}>
+            <Title order={4} align="center" py="20px">
+              Click to upload or Drag image to upload
+            </Title>
+          </Dropzone>
+        )}
         <Space h="20px" />
         <Divider />
         <Space h="20px" />

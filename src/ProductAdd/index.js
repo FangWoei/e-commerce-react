@@ -8,19 +8,23 @@ import {
   Divider,
   Button,
   Group,
+  Image,
 } from "@mantine/core";
+import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { useMutation } from "@tanstack/react-query";
-import { addProduct } from "../api/products";
+import { addProduct, uploadProductImage } from "../api/products";
 
-function ProductAdd() {
+function ProductsAdd() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
+  const [image, setImage] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: addProduct,
@@ -47,9 +51,30 @@ function ProductAdd() {
         description: description,
         price: price,
         category: category,
+        image: image,
       })
     );
   };
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadProductImage,
+    onSuccess: (data) => {
+      setImage(data.image_url);
+      setUploading(false);
+    },
+    onError: (error) => {
+      notifications.show({
+        title: error.response.data.message,
+        color: "red",
+      });
+    },
+  });
+
+  const handleImageUpload = (files) => {
+    uploadMutation.mutate(files[0]);
+    setUploading(true);
+  };
+
   return (
     <Container>
       <Space h="50px" />
@@ -91,6 +116,29 @@ function ProductAdd() {
         <Space h="20px" />
         <Divider />
         <Space h="20px" />
+        {image && image !== "" ? (
+          <>
+            <Image src={"http://localhost:1226/" + image} width="100%" />
+            <Button color="dark" mt="15px" onClick={() => setImage("")}>
+              Remove Image
+            </Button>
+          </>
+        ) : (
+          <Dropzone
+            loading={uploading}
+            multiple={false}
+            accept={IMAGE_MIME_TYPE}
+            onDrop={(files) => {
+              handleImageUpload(files);
+            }}>
+            <Title order={4} align="center" py="20px">
+              Click to upload or Drag image to upload
+            </Title>
+          </Dropzone>
+        )}
+        <Space h="20px" />
+        <Divider />
+        <Space h="20px" />
         <TextInput
           value={category}
           placeholder="Enter the category here"
@@ -118,4 +166,4 @@ function ProductAdd() {
     </Container>
   );
 }
-export default ProductAdd;
+export default ProductsAdd;

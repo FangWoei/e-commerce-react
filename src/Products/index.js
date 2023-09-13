@@ -13,18 +13,35 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchProducts, deleteProduct } from "../api/products";
+import { addToCart, getCartItems } from "../api/cart";
 
 function Products() {
   const queryClient = useQueryClient();
   const [category, setCategory] = useState("");
   const [currentProducts, setCurrentProducts] = useState([]);
+  const [sort, setSort] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(6);
+  const [totalPages, setTotalPages] = useState([]);
   const { isLoading, data: products } = useQuery({
     queryKey: ["products", category],
     queryFn: () => fetchProducts(category),
   });
 
+  const { data: cart = [] } = useQuery({
+    queryKey: ["cart"],
+    queryFn: getCartItems,
+  });
+
   useEffect(() => {
-    // this will trigger when products is updated OR category is changed
+    /* 
+      everything here will trigger when 
+        - products is updated OR 
+        - category is changed OR
+        - sort is updated OR
+        - perPage is updated OR
+        - currentPage is updated
+    */
     // method 1:
     // if (category !== "") {
     //   const filteredProducts = products.filter((p) => p.category === category);
@@ -38,8 +55,58 @@ function Products() {
     if (category !== "") {
       newList = newList.filter((p) => p.category === category);
     }
+
+    // get total pages
+    /*
+      for example, 
+        total items: 20 
+        items per page: 6
+        4 pages (20/6) = 3.333
+    */
+    const total = Math.ceil(newList.length / perPage);
+    // convert the total number into array
+    const pages = [];
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+    setTotalPages(pages);
+
+    // sorting
+    switch (sort) {
+      case "name":
+        newList = newList.sort((a, b) => {
+          return a.name.localeCompare(b.name);
+        });
+        break;
+      case "price":
+        newList = newList.sort((a, b) => {
+          return a.price - b.price;
+        });
+        break;
+    }
+
+    // do pagination
+    const start = (currentPage - 1) * perPage;
+    const end = start + perPage;
+    /*
+       const start =6;
+       currentPage = 1
+       perPage = 6
+       start = 1-1 * 6 = 0
+       end = 0 + 6
+       currentPage = 2
+       perPage = 6
+       start = 2-1 * 6 = 6
+       end = 6 + 6 = 12
+       currentPage = 3
+       perPage = 6
+       start = 3-1 * 6 = 12
+       end = 12 + 6 = 18
+     */
+    newList = newList.slice(start, end);
+
     setCurrentProducts(newList);
-  }, [products, category]);
+  }, [products, category, sort, perPage, currentPage]);
 
   const categoryOptions = useMemo(() => {
     let options = [];
@@ -57,10 +124,23 @@ function Products() {
     mutationFn: deleteProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["products", category],
+        queryKey: ["products"],
       });
       notifications.show({
         title: "Products Deleted",
+        color: "green",
+      });
+    },
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: addToCart,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["cart"],
+      });
+      notifications.show({
+        title: "Product Added to Cart",
         color: "green",
       });
     },
@@ -86,6 +166,7 @@ function Products() {
           value={category}
           onChange={(event) => {
             setCategory(event.target.value);
+            setCurrentPage(1);
           }}>
           <option value="">All Categories</option>
           {categoryOptions.map((category) => {
@@ -95,6 +176,26 @@ function Products() {
               </option>
             );
           })}
+        </select>
+        <select
+          value={sort}
+          onChange={(event) => {
+            setSort(event.target.value);
+          }}>
+          <option value="">No Sorting</option>
+          <option value="name">Sort By Name</option>
+          <option value="price">Sort By Price</option>
+        </select>
+        <select
+          value={perPage}
+          onChange={(event) => {
+            setPerPage(parseInt(event.target.value));
+            // reset it back to page 1
+            setCurrentPage(1);
+          }}>
+          <option value="6">6 Per Page</option>
+          <option value="10">10 Per Page</option>
+          <option value={9999999}>All</option>
         </select>
       </Group>
       <Space h="20px" />
@@ -122,11 +223,13 @@ function Products() {
                     <Space h="20px" />
                     <Group position="center">
                       <Button
-                        component={Link}
-                        to=""
+                        onClick={() => {
+                          addToCartMutation.mutate(pro);
+                        }}
                         variant="gradient"
-                        gradient={{ from: "blue", to: "blue" }}
+                        gradient={{ from: "blue", to: "dark" }}
                         fullWidth>
+                        {" "}
                         Add To Cart
                       </Button>
                     </Group>
@@ -158,6 +261,27 @@ function Products() {
             })
           : null}
       </Grid>
+      <Space h="40px" />
+      <div>
+        <span
+          style={{
+            marginRight: "10px",
+          }}>
+          Page {currentPage} of {totalPages.length}
+        </span>
+        {totalPages.map((page) => {
+          return (
+            <button
+              key={page}
+              onClick={() => {
+                setCurrentPage(page);
+              }}>
+              {page}
+            </button>
+          );
+        })}
+      </div>
+      <Space h="40px" />
     </>
   );
 }
