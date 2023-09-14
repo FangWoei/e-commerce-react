@@ -5,7 +5,7 @@ function Orders() {
   return (
     <div>
       <Container>
-        <Header />
+      <Header title="Orders"/>
       </Container>
     </div>
   );

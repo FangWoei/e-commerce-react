@@ -1,4 +1,4 @@
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { getCartItems, removeItemFromCart } from "../api/cart";
 import {
   Container,
@@ -13,10 +13,8 @@ import {
   Divider,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Header from "../Header";
-import { useMutation } from "@tanstack/react-query";
-import Products from "../Products";
 
 export default function Cart() {
   const [checkedList, setCheckedList] = useState([]);
@@ -66,11 +64,12 @@ export default function Cart() {
 
   /* check box*/
 
-  const calculateTotal = () => {
+  const cartTotal = useMemo(() => {
     let total = 0;
     cart.map((item) => (total = total + item.quantity * item.price));
+    console.log(total);
     return total;
-  };
+  }, [cart]);
 
   // console.log(queryClient.getQueryData(["cart"]));
   // console.log(getCartItems());
@@ -101,7 +100,7 @@ export default function Cart() {
         />
       </td>
       <td width="20%">
-        <Image src={"http://localhost:1226/" + c.image} width="100%" />
+        <Image src={"http://localhost:1226/" + c.image} width="200px" />
       </td>
       <td>{c.name}</td>
       <td>${c.price}</td>
@@ -127,7 +126,7 @@ export default function Cart() {
   return (
     <>
       <Container>
-        <Header />
+        <Header title="Cart" />
         <Title order={3} align="center">
           Cart
         </Title>
@@ -160,7 +159,9 @@ export default function Cart() {
               <td></td>
               <td></td>
               <td></td>
-              <td>${calculateTotal()}</td>
+              <td>
+                <strong>${cartTotal}</strong>
+              </td>
               <td></td>
             </tr>
           </tbody>

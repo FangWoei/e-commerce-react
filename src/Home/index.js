@@ -6,7 +6,7 @@ import Header from "../Header";
 function Home() {
   return (
     <Container>
-      <Header />
+      <Header title={"Welcome To My Store"} page="home" />
       <Products />
     </Container>
   );

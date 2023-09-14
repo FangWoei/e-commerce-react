@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { Group, Space, Divider, Title } from "@mantine/core";
-function Header() {
+import { Group, Space, Divider, Title, Button } from "@mantine/core";
+function Header({ title, page = "" }) {
   return (
     <div>
       <Space h="xl" />
@@ -8,33 +8,27 @@ function Header() {
         <Title
           align="center"
           variant="gradient"
-          gradient={{ from: "yellow", to: "orange" }}>
-          Welcome to My Store
+          gradient={{ from: "grape", to: "pink" }}>
+          {title}
         </Title>
         <Space h="40px" />
       </div>
       <Space h="md" />
       <Group position="apart">
-        <Link
-          to="/"
-          align="center"
-          style={{ textDecoration: "none" }}
-          color="blue">
-          Home
+        <Link to="/" align="center" style={{ textDecoration: "none" }}>
+          <Button variant="gradient" gradient={{ from: "cyan", to: "teal" }}>
+            Home
+          </Button>
         </Link>
-        <Link
-          to="/cart"
-          align="center"
-          style={{ textDecoration: "none" }}
-          color="blue">
-          Cart
+        <Link to="/cart" align="center" style={{ textDecoration: "none" }}>
+          <Button variant="gradient" gradient={{ from: "grape", to: "violet" }}>
+            Cart
+          </Button>
         </Link>
-        <Link
-          to="/order"
-          align="center"
-          style={{ textDecoration: "none" }}
-          color="blue">
-          My Orders
+        <Link to="/order" align="center" style={{ textDecoration: "none" }}>
+          <Button variant="gradient" gradient={{ from: "indigo", to: "cyan" }}>
+            My Orders
+          </Button>
         </Link>
       </Group>
       <Space h="40px" />
