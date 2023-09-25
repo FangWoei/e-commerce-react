@@ -1,5 +1,9 @@
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { getCartItems, removeItemFromCart } from "../api/cart";
+import {
+  getCartItems,
+  removeItemFromCart,
+  removeItemsFromCart,
+} from "../api/cart";
 import {
   Container,
   Title,
@@ -15,6 +19,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useState, useMemo } from "react";
 import Header from "../Header";
+import { Link } from "react-router-dom";
 
 export default function Cart() {
   const [checkedList, setCheckedList] = useState([]);
@@ -47,20 +52,32 @@ export default function Cart() {
     } else {
       const newCheckedList = checkedList.filter((cart) => cart !== id);
       setCheckedList(newCheckedList);
+      if (newCheckedList.length === 0) {
+        setCheckAll(false);
+      }
     }
   };
 
   const deleteCheckedItems = () => {
-    const newCart = cart.filter((item) => !checkedList.includes(item._id));
-
-    queryClient.setQueryData(["cart"], newCart);
-
-    setCheckedList([]);
-    localStorage.setItem("cart", JSON.stringify(newCart));
-
-    setCheckAll(false);
-    setCheckedList([]);
+    deleteProductsMutation.mutate(checkedList);
   };
+
+  const deleteProductsMutation = useMutation({
+    mutationFn: removeItemsFromCart,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["cart"],
+      });
+      notifications.show({
+        title: "Selected Products Deleted",
+        color: "green",
+      });
+      // to reset the checkbox
+
+      setCheckAll(false);
+      setCheckedList([]);
+    },
+  });
 
   /* check box*/
 
@@ -179,7 +196,12 @@ export default function Cart() {
             }}>
             Delete Selected
           </Button>
-          <Button>Checkout</Button>
+          <Button
+            component={Link}
+            to="/checkout"
+            disabled={cart.length > 0 ? false : true}>
+            Checkout
+          </Button>
         </Group>
       </Container>
     </>
