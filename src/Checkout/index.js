@@ -12,17 +12,17 @@ import {
   Grid,
   Text,
 } from "@mantine/core";
-import { useNavigate } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
 import Header from "../Header";
+import { useCookies } from "react-cookie";
 import { createOrder } from "../api/order";
 
 export default function Checkout() {
-  const navigate = useNavigate();
-
+  const [cookies] = useCookies(["currentUser"]);
+  const { currentUser } = cookies;
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(currentUser ? currentUser.name : "");
+  const [email, setEmail] = useState(currentUser ? currentUser.email : "");
   const { data: cart = [] } = useQuery({
     queryKey: ["cart"],
     queryFn: getCartItems,
@@ -39,7 +39,6 @@ export default function Checkout() {
     onSuccess: (data) => {
       // clear the cart
       clearCartItems();
-
       // 3. redirect the customer to payment gateway
       window.location = data.url;
     },
@@ -74,14 +73,6 @@ export default function Checkout() {
           customerEmail: email,
           products: cart.map((i) => i._id),
           description: cart.map((i) => i.name).join(", "),
-          /*
-        [
-          { name: '1' },
-          { name: '2; }
-        ]
-        [ '1' , '2' ]
-        1, 2
-      */
           totalPrice: calculateTotal(),
         })
       );

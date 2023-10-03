@@ -1,38 +1,54 @@
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import {
   Container,
   Table,
-  Button,
-  Space,
-  Image,
-  Select,
   Group,
+  Button,
+  Image,
+  Space,
+  Card,
+  Select,
+  LoadingOverlay,
 } from "@mantine/core";
 import { Link } from "react-router-dom";
-import Header from "../Header";
-import { fetchOrders, deleteOrder, updateStatus, getOrder } from "../api/order";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
-import { useState } from "react";
+import Header from "../Header";
+import { fetchOrders, deleteOrder, updateOrder } from "../api/order";
+import { useCookies } from "react-cookie";
 
 export default function Orders() {
+  const [cookies] = useCookies(["currentUser"]);
+  const { currentUser } = cookies;
   const queryClient = useQueryClient();
-  const [status, setStatus] = useState("");
-  const { data: orders = [] } = useQuery({
+  const { isLoading, data: orders = [] } = useQuery({
     queryKey: ["orders"],
-    queryFn: fetchOrders,
+    queryFn: () => fetchOrders(currentUser ? currentUser.token : ""),
   });
-  console.log(orders);
 
-  const { isLoading } = useQuery({
-    queryKey: ["order", orders._id],
-    queryFn: () => getOrder(orders._id),
-    onSuccess: (data) => {
-      setStatus(data.status);
+  const isAdmin = useMemo(() => {
+    return cookies &&
+      cookies.currentUser &&
+      cookies.currentUser.role === "admin"
+      ? true
+      : false;
+  }, [cookies]);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["orders"],
+      });
+      notifications.show({
+        title: "Order Deleted",
+        color: "green",
+      });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: updateStatus,
+    mutationFn: updateOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["orders"],
@@ -50,33 +66,12 @@ export default function Orders() {
     },
   });
 
-  const handleUpdateStatus = async (order, valueOne) => {
-    console.log(valueOne);
-    updateMutation.mutate({
-      id: order._id,
-      data: JSON.stringify({
-        status: valueOne,
-      }),
-    });
-  };
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteOrder,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["orders"],
-      });
-      notifications.show({
-        title: "Orders Deleted",
-        color: "green",
-      });
-    },
-  });
   return (
     <>
-      <Container>
+      <Container size="100%">
         <Header title="My Orders" page="orders" />
         <Space h="35px" />
+        <LoadingOverlay visible={isLoading} />
         <Table>
           <thead>
             <tr>
@@ -85,7 +80,7 @@ export default function Orders() {
               <th>Total Amount</th>
               <th>Status</th>
               <th>Payment Date</th>
-              <th>Actions</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -95,34 +90,42 @@ export default function Orders() {
                     <tr key={o._id}>
                       <td>
                         {o.customerName}
-                        <br />
-                        {o.customerEmail}
+                        <br />({o.customerEmail})
                       </td>
                       <td>
                         {o.products.map((product, index) => (
-                          <div key={index} style={{ display: "flex" }}>
-                            <Image
-                              src={"http://localhost:1226/" + product.image}
-                              width="140px"
-                              my="10px"
-                            />
-                            <Space w="10px" />
-                            <Group position="center">
-                              <strong>{product.name}</strong>
+                          <div key={index}>
+                            <Group>
+                              {product.image && product.image !== "" ? (
+                                <>
+                                  <Image
+                                    src={
+                                      "http://localhost:1226/" + product.image
+                                    }
+                                    width="100px"
+                                    py={"10px"}
+                                  />
+                                </>
+                              ) : (
+                                <Image
+                                  src={
+                                    "https://www.aachifoods.com/templates/default-new/images/no-prd.jpg"
+                                  }
+                                  width="50px"
+                                />
+                              )}
+                              <p>{product.name}</p>
                             </Group>
                           </div>
                         ))}
                       </td>
-                      <td>${o.totalPrice}</td>
+                      <td>{o.totalPrice}</td>
                       <td>
                         <Select
                           value={o.status}
-                          onChange={(valueOne) =>
-                            handleUpdateStatus(o, valueOne)
+                          disabled={
+                            o.status === "Pending" || !isAdmin ? true : false
                           }
-                          w="150px"
-                          placeholder={o.status}
-                          disabled={o.status == "Pending" ? true : false}
                           data={[
                             {
                               value: "Pending",
@@ -131,27 +134,33 @@ export default function Orders() {
                             },
                             { value: "Paid", label: "Paid" },
                             { value: "Failed", label: "Failed" },
-                            {
-                              value: "Shipped",
-                              label: "Shipped",
-                            },
-                            {
-                              value: "Delivered",
-                              label: "Delivered",
-                            },
+                            { value: "Shipped", label: "Shipped" },
+                            { value: "Delivered", label: "Delivered" },
                           ]}
+                          onChange={(newValue) => {
+                            updateMutation.mutate({
+                              id: o._id,
+                              data: JSON.stringify({
+                                status: newValue,
+                              }),
+                              token: currentUser ? currentUser.token : "",
+                            });
+                          }}
                         />
                       </td>
                       <td>{o.paid_at}</td>
                       <td>
-                        {o.status == "Pending" && (
+                        {o.status === "Pending" && isAdmin && (
                           <Button
                             variant="outline"
                             color="red"
                             onClick={() => {
-                              deleteMutation.mutate(o._id);
+                              deleteMutation.mutate({
+                                id: o._id,
+                                token: currentUser ? currentUser.token : "",
+                              });
                             }}>
-                            Delete Selected
+                            Delete
                           </Button>
                         )}
                       </td>
@@ -160,10 +169,13 @@ export default function Orders() {
                 })
               : null}
           </tbody>
+        </Table>
+        <Space h="20px" />
+        <Group position="center">
           <Button component={Link} to="/">
             Continue Shopping
           </Button>
-        </Table>
+        </Group>
         <Space h="100px" />
       </Container>
     </>

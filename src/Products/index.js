@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   Title,
   Grid,
@@ -14,8 +13,12 @@ import { notifications } from "@mantine/notifications";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchProducts, deleteProduct } from "../api/products";
 import { addToCart, getCartItems } from "../api/cart";
+import { useCookies } from "react-cookie";
+import { Link, useNavigate } from "react-router-dom";
 
 function Products() {
+  const [cookies] = useCookies(["currentUser"]);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [category, setCategory] = useState("");
   const [currentProducts, setCurrentProducts] = useState([]);
@@ -32,6 +35,14 @@ function Products() {
     queryKey: ["cart"],
     queryFn: getCartItems,
   });
+
+  const isAdmin = useMemo(() => {
+    return cookies &&
+      cookies.currentUser &&
+      cookies.currentUser.role === "admin"
+      ? true
+      : false;
+  }, [cookies]);
 
   useEffect(() => {
     /* 
@@ -152,13 +163,15 @@ function Products() {
         <Title order={3} align="center">
           Products
         </Title>
-        <Button
-          component={Link}
-          to="/product_add"
-          variant="gradient"
-          gradient={{ from: "black", to: "White", deg: 105 }}>
-          Add New
-        </Button>
+        {isAdmin && (
+          <Button
+            component={Link}
+            to="/product_add"
+            variant="gradient"
+            gradient={{ from: "black", to: "White", deg: 105 }}>
+            Add New
+          </Button>
+        )}
       </Group>
       <Space h="20px" />
       <Group>
@@ -223,38 +236,60 @@ function Products() {
                     <Space h="20px" />
                     <Group position="center">
                       <Button
-                        onClick={() => {
-                          addToCartMutation.mutate(pro);
-                        }}
+                        fullWidth
                         variant="gradient"
-                        gradient={{ from: "blue", to: "dark" }}
-                        fullWidth>
+                        gradient={{ from: "blue", to: "black" }}
+                        onClick={() => {
+                          // pop a messsage if user is not logged in
+                          if (cookies && cookies.currentUser) {
+                            addToCartMutation.mutate(pro);
+                          } else {
+                            notifications.show({
+                              title: "Please login to proceed",
+                              message: (
+                                <>
+                                  <Button
+                                    color="red"
+                                    onClick={() => {
+                                      navigate("/login");
+                                      notifications.clean();
+                                    }}>
+                                    Click here to login
+                                  </Button>
+                                </>
+                              ),
+                              color: "red",
+                            });
+                          }
+                        }}>
                         {" "}
                         Add To Cart
                       </Button>
                     </Group>
                     <Space h="20px" />
-                    <Group position="apart">
-                      <Button
-                        component={Link}
-                        to={"/products/" + pro._id}
-                        variant="gradient"
-                        gradient={{ from: "blue", to: "darkblue" }}
-                        size="xs"
-                        radius="50px">
-                        Edit
-                      </Button>
-                      <Button
-                        variant="gradient"
-                        gradient={{ from: "orange", to: "red" }}
-                        size="xs"
-                        radius="50px"
-                        onClick={() => {
-                          deleteMutation.mutate(pro._id);
-                        }}>
-                        Delete
-                      </Button>
-                    </Group>
+                    {isAdmin && (
+                      <Group position="apart">
+                        <Button
+                          component={Link}
+                          to={"/products/" + pro._id}
+                          variant="gradient"
+                          gradient={{ from: "blue", to: "darkblue" }}
+                          size="xs"
+                          radius="50px">
+                          Edit
+                        </Button>
+                        <Button
+                          variant="gradient"
+                          gradient={{ from: "orange", to: "red" }}
+                          size="xs"
+                          radius="50px"
+                          onClick={() => {
+                            deleteMutation.mutate(pro._id);
+                          }}>
+                          Delete
+                        </Button>
+                      </Group>
+                    )}
                   </Card>
                 </Grid.Col>
               );

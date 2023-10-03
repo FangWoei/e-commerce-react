@@ -143,7 +143,7 @@ export default function Cart() {
   return (
     <>
       <Container>
-        <Header title="Cart" />
+        <Header title="Cart" page="cart" />
         <Title order={3} align="center">
           Cart
         </Title>
