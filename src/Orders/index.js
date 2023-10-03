@@ -1,5 +1,5 @@
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Container,
   Table,
@@ -7,7 +7,6 @@ import {
   Button,
   Image,
   Space,
-  Card,
   Select,
   LoadingOverlay,
 } from "@mantine/core";

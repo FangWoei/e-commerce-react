@@ -18,6 +18,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Products() {
   const [cookies] = useCookies(["currentUser"]);
+  const { currentUser } = cookies;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [category, setCategory] = useState("");
@@ -28,7 +29,7 @@ function Products() {
   const [totalPages, setTotalPages] = useState([]);
   const { isLoading, data: products } = useQuery({
     queryKey: ["products", category],
-    queryFn: () => fetchProducts(category),
+    queryFn: () => fetchProducts(currentUser ? currentUser.token : ""),
   });
 
   const { data: cart = [] } = useQuery({
@@ -284,7 +285,10 @@ function Products() {
                           size="xs"
                           radius="50px"
                           onClick={() => {
-                            deleteMutation.mutate(pro._id);
+                            deleteMutation.mutate({
+                              id: pro._id,
+                              token: currentUser ? currentUser.token : "",
+                            });
                           }}>
                           Delete
                         </Button>
